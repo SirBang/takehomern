@@ -1,0 +1,33 @@
+{
+  "name": "back-end",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "start:prod": "cross-env NODE_ENV=production nodemon",
+    "start:dev": "cross-env NODE_ENV=development nodemon"
+  },
+  "dependencies": {
+    "bcrypt": "^5.1.1",
+    "cookie-parser": "^1.4.6",
+    "express": "^4.18.2",
+    "sequelize": "^6.28.0",
+    "sqlite3": "^5.1.4",
+    "typescript": "^5.1.3"
+  },
+  "devDependencies": {
+    "@types/bcrypt": "^5.0.1",
+    "@types/express": "^4.17.15"
+  },
+  "nodemonConfig": {
+    "ignore": [
+      "**/node_modules/**"
+    ],
+    "delay": 1000,
+    "watch": [
+      "src/**/*.ts"
+    ],
+    "ext": "ts,js,mjs,json",
+    "verbose": false,
+    "exec": "ts-node src/app.ts"
+  }
+}
