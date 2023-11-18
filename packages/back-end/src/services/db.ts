@@ -1,9 +1,10 @@
 import {DataTypes, Model, Sequelize} from 'sequelize';
 import {join, resolve} from 'path';
-
+import bcrypt from "bcrypt";
 export const sequelize = new Sequelize({
   dialect: 'sqlite',
-  storage: process.env.EXPRESS_SQLZ_DB || (resolve(join(__dirname, '../../../../database.db'))),
+  logging: false,
+  storage: resolve(join(__dirname, '../../../../database.db')),
 });
 
 export type IUser = {
@@ -48,6 +49,14 @@ User.init({
       fields: [sequelize.fn('lower', sequelize.col('username'))],
     },
   ],
+});
+
+// Hook to encrypt the password before creating a user
+User.beforeCreate(async (user: User) => {
+  
+  const saltRounds = 10;
+  const hashedPassword = await bcrypt.hash(user.password, saltRounds);
+  user.password = hashedPassword;
 });
 
 export type ISession = {

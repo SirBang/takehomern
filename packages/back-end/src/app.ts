@@ -40,10 +40,14 @@ queue.forEach(entry => {
   }
 });
 
-app.listen(config.http.port, config.http.host, () => {
-  console.log(`Listening on http://${config.http.host}:${config.http.port}/`);
-});
+// app.listen(config.http.port, config.http.host,async() => {
+//   console.log(`Listening on http://${config.http.host}:${config.http.port}/`);
 
+// });
+app.listen(config.http.port, async() => {
+  console.log(`Listening on http://${config.http.host}:${config.http.port}/`);
+
+});
 function isFile(path: string): boolean {
   try {
     return statSync(path).isFile();
@@ -51,3 +55,4 @@ function isFile(path: string): boolean {
     return false;
   }
 }
+// await sequelize.sync({ force: true });

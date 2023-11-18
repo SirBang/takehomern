@@ -12,7 +12,8 @@
     "express": "^4.18.2",
     "sequelize": "^6.28.0",
     "sqlite3": "^5.1.4",
-    "typescript": "^5.1.3"
+    "typescript": "^5.1.3",
+    "validator": "^13.11.0"
   },
   "devDependencies": {
     "@types/bcrypt": "^5.0.1",

@@ -2,9 +2,13 @@ import {NextFunction, Request, Response} from 'express';
 import {Session, User} from '../services/db';
 
 export function attachSession(req: Request, res: Response, next: NextFunction) {
+
+
   if (!req.cookies?.SESSION_TOKEN) {
+  
     return next();
   }
+  
   req.session = {
     token: null,
     user: null,
@@ -16,6 +20,7 @@ export function attachSession(req: Request, res: Response, next: NextFunction) {
     },
   })
     .then(sess => {
+
       if (sess?.dataValues?.id) {
         req.session.token = sess.dataValues;
 
@@ -28,7 +33,6 @@ export function attachSession(req: Request, res: Response, next: NextFunction) {
             if (user?.dataValues?.id) {
               req.session.user = user.dataValues;
             } // else: session is mapped to a deleted user. should report this somewhere.
-
             next();
           });
       } else {
@@ -43,4 +47,17 @@ export function attachSession(req: Request, res: Response, next: NextFunction) {
         message: 'Internal: Failed to fetch session by token.',
       });
     });
+}
+
+
+export function authMiddleware(req: Request, res: Response, next: NextFunction){
+
+    if (req.session?.token?.id) {
+      next();
+    } else {
+      return res.json({
+        success: false,
+        message: 'Not Authenticated',
+      });
+    }
 }

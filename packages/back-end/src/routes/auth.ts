@@ -1,7 +1,8 @@
 import IRoute from '../types/IRoute';
 import {Router} from 'express';
 import {compareSync} from 'bcrypt';
-import {attachSession} from '../middleware/auth';
+import {attachSession,authMiddleware} from '../middleware/auth';
+import {validate} from '../middleware/validate';
 import {sequelize, Session, User} from '../services/db';
 import {randomBytes} from 'crypto';
 
@@ -12,12 +13,12 @@ const AuthRouter: IRoute = {
     router.use(attachSession);
 
     // If we're authenticated, return basic user data.
-    router.get('/', (req, res) => {
-      if (req.session?.token?.id) {
+    router.get('/', authMiddleware, (req, res) => {
         const {
           token: {token, ...session},
           user: {password, ...user},
         } = req.session;
+
         return res.json({
           success: true,
           message: 'Authenticated',
@@ -26,34 +27,20 @@ const AuthRouter: IRoute = {
             user,
           },
         });
-      } else {
-        return res.json({
-          success: false,
-          message: 'Not Authenticated',
-        });
-      }
     });
-
+    router.use(['/login','/register'],validate);
     // Attempt to log in
     router.post('/login', async (req, res) => {
-      const {
-        username,
-        password,
-      } = req.body;
-      if (!username || !password) {
-        return res.status(400).json({
-          success: false,
-          message: 'Missing username/password.',
-        });
-      }
-
+   
+      const { username, password } = req.body;
+   
       const user = await User.findOne({
         where: sequelize.where(
           sequelize.fn('lower', sequelize.col('username')),
           sequelize.fn('lower', username),
         ),
       }).catch(err => console.error('User lookup failed.', err));
-
+     
       // Ensure the user exists. If not, return an error.
       if (!user) {
         return res.status(401).json({
@@ -69,7 +56,7 @@ const AuthRouter: IRoute = {
           message: 'Invalid username/password.',
         });
       }
-
+   
       // We now know the user is valid so it's time to mint a new session token.
       const sessionToken = randomBytes(32).toString('hex');
       let session;
@@ -90,12 +77,12 @@ const AuthRouter: IRoute = {
 
       // We set the cookie on the response so that browser sessions will
       // be able to use it.
+      
       res.cookie('SESSION_TOKEN', sessionToken, {
         expires: new Date(Date.now() + (3600 * 24 * 7 * 1000)), // +7 days
         secure: false,
         httpOnly: true,
       });
-
       // We return the cookie to the consumer so that non-browser
       // contexts can utilize it easily. This is a convenience for the
       // take-home so you don't have to try and extract the cookie from
@@ -103,23 +90,72 @@ const AuthRouter: IRoute = {
       // in non-oauth flows :)
       return res.json({
         success: true,
-        message: 'Authenticated Successfully.',
+        message: 'Logined Successfully.',
         data: {
           token: sessionToken,
         },
       });
     });
 
+
     // Attempt to register
-    router.post('/register', (req, res) => {
-      // TODO
+    router.post('/register',async (req, res) => {
+      const {username,displayName,password } = req.body;
+
+      try {
+        // Persist the token to the database.
+        await User.create({
+          username: username,
+          password: password,
+          displayName:displayName,
+          registered:Date.now()
+        });
+
+
+        return res.json({
+          success: true,
+          message: 'Authenticated Successfully.'
+        });
+
+      } catch (e) {
+        return passError('Failed to create session.', e, res);
+      }
+
     });
 
     // Log out
-    router.post('/logout', (req, res) => {
-      // TODO
-    });
+    router.get('/logout', async (req, res) => {
 
+        const {SESSION_TOKEN} = req.cookies;
+
+        res.clearCookie('SESSION_TOKEN');
+        res.session = {};
+
+        console.log(res.cookie);
+        console.log(res.session);
+        try {
+            await Session.destroy({
+              where: {
+                token: SESSION_TOKEN,
+              },
+            });
+        
+            return res.json({
+              success: true,
+              message: 'Logout successful.',
+            });
+
+        } catch (error) {
+            console.error('Failed to delete session:', error);
+            return res.status(500).json({
+              success: false,
+              message: 'An error occurred while logging out.',
+            });
+        }
+
+
+    });
+    
     return router;
   },
 };
